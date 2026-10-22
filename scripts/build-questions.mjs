@@ -4,6 +4,7 @@ import { createRequire } from "module";
 import { writeFileSync, mkdirSync } from "fs";
 const require = createRequire(import.meta.url);
 const all = require("world-countries");
+import { CITIES, LANDMARKS } from "./world-places.mjs";
 
 // Seeded RNG so the bank is identical on every build
 let seed = 20261022;
@@ -130,10 +131,32 @@ for (const c of C) {
       options: [big, ...four.filter((x) => x !== big)].map(cOpt), to: big.cca3, fact: `${big.name} covers about ${fmtArea(big.area)} km²` });
 }
 
+
+// ---- world cities and landmarks (mostly outside Africa, to keep the bank international) ----
+for (const p of [...CITIES, ...LANDMARKS]) if (!byCca3[p.c]) throw new Error(`Unknown country code ${p.c} for ${p.n}`);
+for (const city of CITIES) {
+  const c = byCca3[city.c];
+  add({ type: "city", cat: "Cities", diff: 1, prompt: `Which country is ${city.n} in?`,
+    options: [c, ...pickOthers(c, 3)].map(cOpt), to: c.cca3, fact: `${city.n} is in ${c.name}` });
+  // reverse: pick the city that is in this country, distractor cities from other countries nearby
+  const others = shuffle(CITIES.filter((x) => x.c !== city.c && byCca3[x.c].region === c.region));
+  const seenCountries = new Set();
+  const picks = others.filter((x) => !seenCountries.has(x.c) && seenCountries.add(x.c)).slice(0, 3);
+  if (picks.length === 3)
+    add({ type: "city-rev", cat: "Cities", diff: 2, prompt: `Which city is in ${c.name}?`, flag: c.cca2,
+      options: [city, ...picks].map((x) => ({ label: x.n })), to: c.cca3, fact: `${city.n} is in ${c.name}` });
+}
+for (const lm of LANDMARKS) {
+  const c = byCca3[lm.c];
+  const name = lm.n[0].toUpperCase() + lm.n.slice(1);
+  add({ type: "landmark", cat: "Landmarks", diff: 1, prompt: `Where is ${lm.n}?`,
+    options: [c, ...pickOthers(c, 3)].map(cOpt), to: c.cca3, fact: `${name} is in ${c.name}` });
+}
+
 // final validation: every question must have 4 unique options and a valid answer
 const bad = Q.filter((q) => q.options.length !== 4 || q.answer < 0);
 if (bad.length) throw new Error(`${bad.length} invalid questions`);
-Q.forEach((q, i) => (q.id = i + 1));
+Q.forEach((q, i) => { q.id = i + 1; q.reg = byCca3[q.to].region; });
 
 mkdirSync(new URL("../src/data/", import.meta.url), { recursive: true });
 writeFileSync(new URL("../src/data/questions.json", import.meta.url), JSON.stringify(Q));
@@ -141,4 +164,4 @@ writeFileSync(new URL("../src/data/places.json", import.meta.url),
   JSON.stringify(Object.fromEntries(C.map((c) => [c.cca3, { n: c.name, id: c.ccn3, lat: c.lat, lon: c.lon, f: c.cca2 }]))));
 
 const by = count(Q.map((q) => q.cat));
-console.log(`Questions: ${Q.length}`, by);
+console.log(`Questions: ${Q.length}`, by, count(Q.map((q) => q.reg)));

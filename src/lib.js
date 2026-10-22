@@ -37,11 +37,24 @@ export const store = {
   set(key, value) { try { localStorage.setItem(key, JSON.stringify(value)); } catch { /* storage unavailable */ } },
 };
 
-// Unseen questions first, so repeat players keep getting new ones
+// Share of each game's questions per world region, so no single region dominates
+export const REGION_WEIGHTS = { Europe: 0.26, Asia: 0.26, Americas: 0.26, Africa: 0.12, Oceania: 0.1 };
+
+// Unseen questions first, then a weighted draw across regions
 export function buildDeck(cats) {
   const seen = new Set(store.get("stamped:seen", []));
-  const pool = QUESTIONS.filter((q) => cats.includes(q.cat));
-  return [...shuffle(pool.filter((q) => !seen.has(q.id))), ...shuffle(pool.filter((q) => seen.has(q.id)))];
+  const queues = {};
+  for (const q of shuffle(QUESTIONS.filter((q) => cats.includes(q.cat)))) (queues[q.reg] ||= []).push(q);
+  for (const r in queues) queues[r].sort((a, b) => seen.has(a.id) - seen.has(b.id));
+  const deck = [];
+  for (;;) {
+    const open = Object.keys(queues).filter((r) => queues[r].length);
+    if (!open.length) return deck;
+    const total = open.reduce((t, r) => t + (REGION_WEIGHTS[r] || 0.1), 0);
+    let roll = Math.random() * total, pick = open[0];
+    for (const r of open) { roll -= REGION_WEIGHTS[r] || 0.1; if (roll <= 0) { pick = r; break; } }
+    deck.push(queues[pick].shift());
+  }
 }
 export function markSeen(id) {
   const seen = store.get("stamped:seen", []);

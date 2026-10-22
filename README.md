@@ -2,7 +2,8 @@
 
 A geography game built with React and D3. Every question sends your plane to a country on a world chart. Answer correctly to land there; answer fast and keep a streak going to multiply your points.
 
-- **1,964 questions** across 9 categories: capitals, flags, regions, internet & phone codes, money, languages, neighbours, geography and people
+- **2,607 questions** across 11 categories: capitals, flags, regions, internet & phone codes, money, languages, neighbours, geography, people, world cities and landmarks
+- Each game is balanced across world regions: about a quarter each from Europe, Asia and the Americas, with the rest from Africa and Oceania
 - **3 flight plans**: Quick hop (10 flights), Long haul (25) and Night flight (endless, three lives)
 - Animated plane flying great-circle routes on a Natural Earth map projection
 - Scoring by difficulty, time left and a streak multiplier (up to ×2)
@@ -31,7 +32,7 @@ npm run dev
 
 ## The question bank
 
-Questions are generated from the `world-countries` dataset by `scripts/build-questions.mjs`, which writes `src/data/questions.json`. The script uses a fixed seed, so the bank is the same on every run. It also checks that every question has four unique options and exactly one correct answer (for example, a currency or language question only uses distractor countries that do not share that currency or language).
+Questions are generated from the `world-countries` dataset plus a hand-picked list of world cities and landmarks (`scripts/world-places.mjs`) by `scripts/build-questions.mjs`, which writes `src/data/questions.json`. The script uses a fixed seed, so the bank is the same on every run. It also checks that every question has four unique options and exactly one correct answer (for example, a currency or language question only uses distractor countries that do not share that currency or language).
 
 ```bash
 npm run questions   # regenerate the bank
